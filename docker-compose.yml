@@ -1,0 +1,13 @@
+services:
+  telegram-listener:
+    build: .
+    container_name: telegram-listener
+    restart: unless-stopped
+
+    environment:
+      API_ID: "38334644"
+      API_HASH: "19ebd6f0e64eaaf2e559b5a8068c47a2"
+      WEBHOOK_URL: "https://agenciadeia-n8n.zn3td5.easypanel.host/webhook/aa271bda-a12d-451a-b801-d98e621e9880"
+
+    volumes:
+      - ./telegram_session.session:/app/telegram_session.session
