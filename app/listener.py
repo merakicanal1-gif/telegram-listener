@@ -26,7 +26,7 @@ async def new_message(event):
         f"Nova mensagem recebida: chat={payload['chat']['id']} | sender={payload['sender']['id']}"
     )
 
-    send_to_webhook(payload)
+    await send_to_webhook(payload)
 
 
 async def start_listener():

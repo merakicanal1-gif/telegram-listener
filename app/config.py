@@ -10,6 +10,7 @@ SESSION_NAME = os.getenv("SESSION_NAME", "telegram_session")
 
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
+UPLOAD_URL = os.getenv("UPLOAD_URL", "https://upload.mymaquina.online/upload")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 10))

@@ -1,9 +1,13 @@
 from telethon.tl.types import Channel, Chat, User
 
+from app.media import extract_media
+
 
 async def build_payload(client, event):
     sender = await event.get_sender()
     chat = await event.get_chat()
+
+    media = await extract_media(client, event)
 
     # Descobre o tipo do chat
     chat_type = "unknown"
@@ -52,7 +56,9 @@ async def build_payload(client, event):
             "is_bot": getattr(sender, "bot", False),
             "is_verified": getattr(sender, "verified", False),
             "is_premium": getattr(sender, "premium", False),
-        }
+        },
+
+        "media": media,
     }
 
     return payload
