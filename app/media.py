@@ -18,7 +18,7 @@ async def extract_media(client, event):
             "size": None,
             "created_at": None,
             "expires_at": None,
-            "ttl": None
+            "ttl": None,
         }
 
     fd, temp_path = tempfile.mkstemp()
@@ -44,7 +44,7 @@ async def extract_media(client, event):
             response = requests.post(
                 UPLOAD_URL,
                 files={
-                    "file": (
+                    "image": (
                         os.path.basename(downloaded),
                         f,
                         mime_type,
@@ -65,7 +65,7 @@ async def extract_media(client, event):
             "size": result.get("size") or os.path.getsize(downloaded),
             "created_at": result.get("created_at"),
             "expires_at": result.get("expires_at"),
-            "ttl": result.get("ttl")
+            "ttl": result.get("ttl"),
         }
 
     except Exception as e:
@@ -80,7 +80,7 @@ async def extract_media(client, event):
             "size": None,
             "created_at": None,
             "expires_at": None,
-            "ttl": None
+            "ttl": None,
         }
 
     finally:
@@ -88,5 +88,6 @@ async def extract_media(client, event):
             try:
                 os.remove(temp_path)
             except Exception as cleanup_err:
-                logger.error(f"Falha ao deletar arquivo temporário local {temp_path}: {cleanup_err}")
-
+                logger.error(
+                    f"Falha ao deletar arquivo temporário local {temp_path}: {cleanup_err}"
+                )
