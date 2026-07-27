@@ -202,9 +202,12 @@ async def upload_file(
             "file_name": unique_filename,
             "fileName": unique_filename,  # Mantém compatibilidade com camelCase
             "mime_type": uploaded_file.content_type,
+            "mimeType": uploaded_file.content_type,  # Mantém compatibilidade com camelCase
             "size": size,
             "created_at": created_at,
+            "createdAt": created_at,  # Mantém compatibilidade com camelCase
             "expires_at": expires_at,
+            "expiresAt": expires_at,  # Mantém compatibilidade com camelCase
             "ttl": actual_ttl
         }
         
