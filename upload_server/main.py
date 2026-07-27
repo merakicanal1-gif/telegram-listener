@@ -196,8 +196,11 @@ async def upload_file(
             conn.commit()
             
         # Constrói a URL pública usando a pasta de uploads de forma dinâmica
-        upload_path_segment = UPLOAD_DIR.strip('/')
-        public_url = f"{BASE_URL.rstrip('/')}/{upload_path_segment}/{unique_filename}"
+        if "ofertas" in UPLOAD_DIR.lower():
+            public_url = f"{BASE_URL.rstrip('/')}/ofertas/{unique_filename}"
+        else:
+            upload_path_segment = UPLOAD_DIR.strip('/')
+            public_url = f"{BASE_URL.rstrip('/')}/{upload_path_segment}/{unique_filename}"
         
         logger.info(f"Arquivo recebido: {unique_filename} ({size} bytes) | TTL: {actual_ttl}s")
         
@@ -223,5 +226,8 @@ async def upload_file(
         raise HTTPException(status_code=500, detail=f"Erro interno no processamento de mídia: {str(e)}")
 
 # Monta o diretório estático de forma dinâmica com o nome da pasta de uploads
-upload_path_segment = UPLOAD_DIR.strip('/')
-app.mount(f"/{upload_path_segment}", StaticFiles(directory=UPLOAD_DIR), name=upload_path_segment)
+if "ofertas" in UPLOAD_DIR.lower():
+    app.mount("/ofertas", StaticFiles(directory=UPLOAD_DIR), name="ofertas")
+else:
+    upload_path_segment = UPLOAD_DIR.strip('/')
+    app.mount(f"/{upload_path_segment}", StaticFiles(directory=UPLOAD_DIR), name=upload_path_segment)
