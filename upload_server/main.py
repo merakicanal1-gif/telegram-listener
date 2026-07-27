@@ -101,6 +101,10 @@ async def cleanup_worker():
 
 app = FastAPI(title="Servidor de Upload de Mídias Temporárias")
 
+@app.get("/")
+async def read_root():
+    return {"status": "online", "message": "Bananou Upload Online"}
+
 @app.on_event("startup")
 async def startup_event():
     init_db()
