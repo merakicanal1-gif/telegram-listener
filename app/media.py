@@ -63,11 +63,11 @@ async def extract_media(client, event):
             "exists": True,
             "type": type(event.media).__name__,
             "url": result.get("url"),
-            "file_name": result.get("file_name"),
-            "mime_type": result.get("mime_type") or mime_type,
-            "size": result.get("size") or os.path.getsize(downloaded),
-            "created_at": result.get("created_at"),
-            "expires_at": result.get("expires_at"),
+            "file_name": result.get("file_name") or result.get("fileName"),
+            "mime_type": result.get("mime_type") or result.get("mimeType") or mime_type,
+            "size": result.get("size") or result.get("fileSize") or os.path.getsize(downloaded),
+            "created_at": result.get("created_at") or result.get("createdAt"),
+            "expires_at": result.get("expires_at") or result.get("expiresAt"),
             "ttl": result.get("ttl"),
         }
 

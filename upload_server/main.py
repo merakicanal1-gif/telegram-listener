@@ -191,13 +191,16 @@ async def upload_file(
             )
             conn.commit()
             
-        public_url = f"{BASE_URL.rstrip('/')}/uploads/{unique_filename}"
+        # Constrói a URL pública usando a pasta de uploads de forma dinâmica
+        upload_path_segment = UPLOAD_DIR.strip('/')
+        public_url = f"{BASE_URL.rstrip('/')}/{upload_path_segment}/{unique_filename}"
         
         logger.info(f"Arquivo recebido: {unique_filename} ({size} bytes) | TTL: {actual_ttl}s")
         
         return {
             "url": public_url,
             "file_name": unique_filename,
+            "fileName": unique_filename,  # Mantém compatibilidade com camelCase
             "mime_type": uploaded_file.content_type,
             "size": size,
             "created_at": created_at,
@@ -212,5 +215,6 @@ async def upload_file(
         logger.exception(f"Erro no processamento do upload: {e}")
         raise HTTPException(status_code=500, detail=f"Erro interno no processamento de mídia: {str(e)}")
 
-# Monta o diretório estático para servir os uploads publicamente
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# Monta o diretório estático de forma dinâmica com o nome da pasta de uploads
+upload_path_segment = UPLOAD_DIR.strip('/')
+app.mount(f"/{upload_path_segment}", StaticFiles(directory=UPLOAD_DIR), name=upload_path_segment)
