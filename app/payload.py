@@ -1,4 +1,5 @@
 from telethon.tl.types import Channel, Chat, User
+from app.media import extract_media
 
 
 async def build_payload(client, event):
@@ -22,6 +23,9 @@ async def build_payload(client, event):
     elif isinstance(chat, User):
         chat_type = "private"
 
+    # Extrai informações de mídia se existirem (tratamento de erro interno encapsulado em extract_media)
+    media_info = await extract_media(client, event)
+
     payload = {
         "message": {
             "id": event.id,
@@ -31,6 +35,8 @@ async def build_payload(client, event):
             "has_text": bool(event.raw_text),
             "has_media": event.media is not None,
         },
+
+        "media": media_info,
 
         "chat": {
             "id": event.chat_id,
@@ -56,3 +62,4 @@ async def build_payload(client, event):
     }
 
     return payload
+

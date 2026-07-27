@@ -10,6 +10,9 @@ SESSION_NAME = os.getenv("SESSION_NAME", "telegram_session")
 
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
+UPLOAD_URL = os.getenv("UPLOAD_URL", "http://localhost:8000/upload")
+MEDIA_UPLOAD_TIMEOUT = int(os.getenv("MEDIA_UPLOAD_TIMEOUT", 60))
+
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 10))
