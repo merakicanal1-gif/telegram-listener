@@ -34,10 +34,21 @@ async def extract_media(client, event):
         if downloaded is None:
             raise Exception("O cliente do Telegram retornou None ao baixar o arquivo.")
 
-        mime_type = (
-            mimetypes.guess_type(downloaded)[0]
-            or "application/octet-stream"
-        )
+        # Tenta obter o MIME type diretamente do objeto de arquivo do Telethon
+        mime_type = getattr(event.file, "mime_type", None)
+        if not mime_type or mime_type == "application/octet-stream":
+            mime_type = mimetypes.guess_type(downloaded)[0] or "application/octet-stream"
+
+        # Se for do tipo foto (MessageMediaPhoto) e o mime for genérico, assume image/jpeg
+        if "photo" in type(event.media).__name__.lower() and mime_type == "application/octet-stream":
+            mime_type = "image/jpeg"
+
+        # Obtém a extensão correta
+        ext = getattr(event.file, "ext", None)
+        if not ext:
+            ext = mimetypes.guess_extension(mime_type) or ".jpg"
+            
+        filename_to_send = f"{os.path.basename(downloaded)}{ext}"
 
         logger.info(f"Fazendo upload para o servidor temporário: {UPLOAD_URL}")
         with open(downloaded, "rb") as f:
@@ -45,7 +56,7 @@ async def extract_media(client, event):
                 UPLOAD_URL,
                 files={
                     "image": (
-                        os.path.basename(downloaded),
+                        filename_to_send,
                         f,
                         mime_type,
                     )
@@ -63,11 +74,11 @@ async def extract_media(client, event):
             "exists": True,
             "type": type(event.media).__name__,
             "url": result.get("url"),
-            "file_name": result.get("file_name") or result.get("fileName"),
-            "mime_type": result.get("mime_type") or result.get("mimeType") or mime_type,
-            "size": result.get("size") or result.get("fileSize") or os.path.getsize(downloaded),
-            "created_at": result.get("created_at") or result.get("createdAt"),
-            "expires_at": result.get("expires_at") or result.get("expiresAt"),
+            "file_name": result.get("file_name"),
+            "mime_type": result.get("mime_type") or mime_type,
+            "size": result.get("size") or os.path.getsize(downloaded),
+            "created_at": result.get("created_at"),
+            "expires_at": result.get("expires_at"),
             "ttl": result.get("ttl"),
         }
 

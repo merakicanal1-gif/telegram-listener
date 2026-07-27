@@ -4,6 +4,9 @@ import logging
 import os
 import sqlite3
 import uuid
+import re
+import unicodedata
+import mimetypes
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -53,6 +56,40 @@ def init_db():
             )
         """)
         conn.commit()
+
+def slugify_filename(name: str) -> str:
+    """Sanitiza o nome de arquivo fornecido pelo cliente."""
+    # Remove a extensão se houver (adicionaremos a correta depois)
+    base_name = os.path.splitext(name)[0]
+    # Normaliza caracteres unicode para remover acentos
+    base_name = unicodedata.normalize('NFKD', base_name).encode('ascii', 'ignore').decode('ascii')
+    # Permite apenas letras, números, hífen e sublinhado
+    base_name = re.sub(r'[^a-zA-Z0-9\-_]', '-', base_name)
+    # Remove hífens duplicados
+    base_name = re.sub(r'-+', '-', base_name)
+    # Limpa hífens ou sublinhados do início e fim
+    base_name = base_name.strip('-_')
+    return base_name if base_name else "upload"
+
+async def delete_expired_file_after_delay(file_name: str, file_path: str, delay: int):
+    """Aguardará o tempo exato do TTL para deletar o arquivo e registro correspondente."""
+    logger.info(f"Remoção agendada: {file_name} programado para ser deletado em {delay} segundos.")
+    await asyncio.sleep(delay)
+    try:
+        # Exclui o arquivo físico
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Remoção agendada executada: Arquivo deletado do disco: {file_path}")
+        else:
+            logger.warning(f"Remoção agendada: Arquivo físico não encontrado: {file_path}")
+            
+        # Exclui do banco
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute("DELETE FROM media WHERE file_name = ?", (file_name,))
+            conn.commit()
+            logger.info(f"Remoção agendada executada: Registro excluído do banco de dados: {file_name}")
+    except Exception as err:
+        logger.error(f"Erro na remoção agendada para {file_name}: {err}")
 
 async def cleanup_worker():
     """Loop em segundo plano para limpar arquivos expirados."""
@@ -119,11 +156,17 @@ async def upload_file(
     ttl: str = Form(None),
     ttl_seconds_query: str = Query(None, alias="ttl_seconds"),
     ttl_query: str = Query(None, alias="ttl"),
+    fileName: str = Form(None),
+    file_name: str = Form(None),
+    filename: str = Form(None),
+    fileName_query: str = Query(None, alias="fileName"),
+    file_name_query: str = Query(None, alias="file_name"),
+    filename_query: str = Query(None, alias="filename"),
 ):
     """
     Recebe um arquivo via POST multipart/form-data.
     Suporta campos de arquivo 'image' e 'file'.
-    Opcionalmente recebe um TTL específico em segundos (form-data ou query parameter).
+    Suporta TTL em segundos (form-data ou query) e nome do arquivo personalizado (fileName, file_name, filename).
     """
     try:
         # Determina qual arquivo foi enviado (priorizando 'image')
@@ -144,7 +187,7 @@ async def upload_file(
             ttl_val = ttl
         elif ttl_query is not None:
             ttl_val = ttl_query
-
+ 
         # Valida o TTL se fornecido
         actual_ttl = None
         if ttl_val is not None:
@@ -163,12 +206,38 @@ async def upload_file(
                     status_code=400,
                     detail="O valor de 'ttl_seconds' é inválido. Deve ser um número inteiro maior que zero."
                 )
-
-        # Gera nome único para o arquivo
+ 
+        # Determina o nome do arquivo solicitado
+        raw_requested_name = None
+        for name_val in [fileName, file_name, filename, fileName_query, file_name_query, filename_query]:
+            if name_val is not None and name_val.strip():
+                raw_requested_name = name_val.strip()
+                break
+                
+        # Resolve a extensão correta
         ext = os.path.splitext(uploaded_file.filename)[1]
-        unique_filename = f"{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        
+        if not ext and uploaded_file.content_type:
+            guessed_ext = mimetypes.guess_extension(uploaded_file.content_type)
+            if guessed_ext:
+                ext = guessed_ext
+        if not ext:
+            ext = ".jpg"
+            
+        # Determina o nome final do arquivo no disco
+        if raw_requested_name:
+            clean_name = slugify_filename(raw_requested_name)
+            base_filename = f"{clean_name}{ext}"
+            file_path = os.path.join(UPLOAD_DIR, base_filename)
+            unique_filename = base_filename
+            
+            # Se colidir, adiciona um hash curto para evitar sobrescrever
+            if os.path.exists(file_path):
+                unique_filename = f"{clean_name}-{uuid.uuid4().hex[:8]}{ext}"
+                file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        else:
+            unique_filename = f"{uuid.uuid4().hex}{ext}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            
         # Salva o arquivo no disco
         size = 0
         with open(file_path, "wb") as buffer:
@@ -176,7 +245,16 @@ async def upload_file(
                 buffer.write(chunk)
                 size += len(chunk)
                 
-        # Datas de criação e expiração no formato ISO 8601 UTC (terminando com Z)
+        # Resolve o mime_type real
+        mime_type = uploaded_file.content_type
+        if mime_type == "application/octet-stream" or not mime_type:
+            guessed_mime = mimetypes.guess_type(unique_filename)[0]
+            if guessed_mime:
+                mime_type = guessed_mime
+            else:
+                mime_type = "image/jpeg"
+                
+        # Datas de criação e expiração no formato ISO 8601 UTC
         now = datetime.datetime.now(datetime.timezone.utc)
         created_at = now.strftime('%Y-%m-%dT%H:%M:%SZ')
         if actual_ttl is not None:
@@ -191,9 +269,13 @@ async def upload_file(
                 INSERT INTO media (file_name, file_path, mime_type, size, created_at, expires_at, ttl)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (unique_filename, file_path, uploaded_file.content_type, size, created_at, expires_at, actual_ttl)
+                (unique_filename, file_path, mime_type, size, created_at, expires_at, actual_ttl)
             )
             conn.commit()
+            
+        # Agenda a exclusão instantânea imediata se houver TTL
+        if actual_ttl is not None:
+            asyncio.create_task(delete_expired_file_after_delay(unique_filename, file_path, actual_ttl))
             
         # Constrói a URL pública usando a pasta de uploads de forma dinâmica
         if "ofertas" in UPLOAD_DIR.lower():
@@ -207,19 +289,14 @@ async def upload_file(
         return {
             "url": public_url,
             "file_name": unique_filename,
-            "fileName": unique_filename,  # Mantém compatibilidade com camelCase
-            "mime_type": uploaded_file.content_type,
-            "mimeType": uploaded_file.content_type,  # Mantém compatibilidade com camelCase
+            "mime_type": mime_type,
             "size": size,
             "created_at": created_at,
-            "createdAt": created_at,  # Mantém compatibilidade com camelCase
             "expires_at": expires_at,
-            "expiresAt": expires_at,  # Mantém compatibilidade com camelCase
             "ttl": actual_ttl
         }
         
     except HTTPException:
-        # Repassa exceções HTTP declaradas diretamente (como o erro 400 do TTL ou arquivo)
         raise
     except Exception as e:
         logger.exception(f"Erro no processamento do upload: {e}")
