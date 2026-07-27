@@ -13,9 +13,10 @@ logs/
 *.log
 
 # Telegram Session
+sessions/*
+!sessions/.gitkeep
 *.session
 *.session-journal
-
 telegram_session.session
 telegram_session.session.backup
 telegram_session.session.bkp

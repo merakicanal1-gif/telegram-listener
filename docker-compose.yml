@@ -3,11 +3,25 @@ services:
     build: .
     container_name: telegram-listener
     restart: unless-stopped
-
+    env_file:
+      - .env
     environment:
-      API_ID: "38334644"
-      API_HASH: "19ebd6f0e64eaaf2e559b5a8068c47a2"
-      WEBHOOK_URL: "https://agenciadeia-n8n.zn3td5.easypanel.host/webhook/aa271bda-a12d-451a-b801-d98e621e9880"
-
+      - SESSION_NAME=/app/sessions/telegram
+      - LOG_TO_FILE=false
     volumes:
-      - ./telegram_session.session:/app/telegram_session.session
+      - ./sessions:/app/sessions
+    depends_on:
+      - upload-server
+
+  upload-server:
+    build: ./upload_server
+    container_name: upload-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./upload_server_data:/app/uploads
+      - ./upload_server_db:/app/db
+

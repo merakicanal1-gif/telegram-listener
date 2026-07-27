@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+.dockerignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Logs
+logs/
+*.log
+
+# Sessions
+sessions/*
+!sessions/.gitkeep
+*.session
+*.session-journal
+
+# Environment / Config
+.env
+docker-compose.yml
+create_session.py
+
+# Upload Server (built separately or from its own subdirectory)
+upload_server/
+upload_server_data/
+upload_server_db/
+
+# Documentation
+README.md
