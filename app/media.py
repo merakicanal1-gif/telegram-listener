@@ -3,7 +3,7 @@ import os
 import tempfile
 import requests
 
-from app.config import UPLOAD_URL, MEDIA_UPLOAD_TIMEOUT
+from app.config import UPLOAD_URL, MEDIA_UPLOAD_TIMEOUT, DEFAULT_TTL
 from app.logger import logger
 
 
@@ -49,6 +49,9 @@ async def extract_media(client, event):
                         f,
                         mime_type,
                     )
+                },
+                data={
+                    "ttl_seconds": DEFAULT_TTL
                 },
                 timeout=MEDIA_UPLOAD_TIMEOUT,
             )

@@ -33,3 +33,8 @@ telegram_session.session.bkp
 # OS
 .DS_Store
 Thumbs.db
+
+# Local upload server data
+upload_server/db/
+upload_server/uploads/
+-tree --name-only HEAD

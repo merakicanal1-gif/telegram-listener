@@ -23,6 +23,7 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 UPLOAD_URL = os.getenv("UPLOAD_URL", "http://localhost:8000/upload")
 MEDIA_UPLOAD_TIMEOUT = int(os.getenv("MEDIA_UPLOAD_TIMEOUT", 60))
+DEFAULT_TTL = int(os.getenv("DEFAULT_TTL", 86400))
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "true").lower() in ("true", "1", "yes")

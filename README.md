@@ -46,6 +46,7 @@ Configure as seguintes variáveis de ambiente no seu arquivo `.env` (ou no paine
 | `LOG_TO_FILE` | Gravar logs em arquivo na pasta `logs/` (defina como `false` no Docker) | `true` (local) / `false` (Docker) | Não |
 | `UPLOAD_URL` | Endpoint para fazer upload temporário de mídias | `http://localhost:8000/upload` | Não |
 | `MEDIA_UPLOAD_TIMEOUT` | Tempo máximo (em segundos) para aguardar o upload de mídias | `60` | Não |
+| `DEFAULT_TTL` | Tempo de expiração (TTL em segundos) padrão para mídias do Telegram | `86400` (24h) | Não |
 
 ---
 
